@@ -39,7 +39,7 @@
     </table>
 
     <script>
-        // Отримання всіх користувачів
+        // Отримання всіх фільмів
         async function GetFilms() {
             // Відправляє запит і отримуємо відповідь
             const response = await fetch("/api/films", {
@@ -57,7 +57,7 @@
                 });
             }
         }
-        // Отримання одного користувача
+        // Отримання одного фільму
         async function GetFilm(id) {
             const response = await fetch("/api/films/" + id, {
                 method: "GET",
@@ -71,7 +71,7 @@
                 form.elements["hall"].value = film.hall;
             }
         }
-        // Додавання користувача
+        // Додавання фільму
         async function CreateFilm(filmName, hallNumber) {
             const response = await fetch("api/films", {
                 method: "POST",
@@ -87,7 +87,7 @@
                 document.querySelector("tbody").append(row(film));
             }
         }
-        // Зміна користувача
+        // Зміна фільму
         async function EditFilm(filmId, filmName, hallNumber) {
             const response = await fetch("/api/films/" + filmId, {
                 method: "PUT",
@@ -103,7 +103,7 @@
                 document.querySelector("tr[data-rowid='" + film._id + "']").replaceWith(row(film));
             }
         }
-        // Видалення користувача
+        // Видалення фільму
         async function DeleteFilm(id) {
             const response = await fetch("/api/films/" + id, {
                 method: "DELETE",
@@ -173,7 +173,7 @@
             else
                 EditFilm(id, name, hall);
         });
-        // Завантаження користувачів
+        // Завантаження фільмів
         GetFilms();
     </script>
 </body>
