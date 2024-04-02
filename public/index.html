@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>List of sessions</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <h2>List of sessions</h2>
+    <form name="filmForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input class="form-control" name="name" />
+        </div>
+        <div class="form-group">
+            <label for="hall">Hall:</label>
+            <input class="form-control" name="hall" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+            <a id="reset" class="btn btn-sm btn-primary">Reset</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Hall</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        // Отримання всіх користувачів
+        async function GetFilms() {
+            // Відправляє запит і отримуємо відповідь
+            const response = await fetch("/api/films", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // Якщо запит пройшов нормально
+            if (response.ok === true) {
+                // Отримуємо дані
+                const films = await response.json();
+                let rows = document.querySelector("tbody");
+                films.forEach(film => {
+                    // Додаємо отримані елементи в таблицю
+                    rows.append(row(film));
+                });
+            }
+        }
+        // Отримання одного користувача
+        async function GetFilm(id) {
+            const response = await fetch("/api/films/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const film = await response.json();
+                const form = document.forms["filmForm"];
+                form.elements["id"].value = film._id;
+                form.elements["name"].value = film.name;
+                form.elements["hall"].value = film.hall;
+            }
+        }
+        // Додавання користувача
+        async function CreateFilm(filmName, hallNumber) {
+            const response = await fetch("api/films", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: filmName,
+                    hall: parseInt(hallNumber, 10)
+                })
+            });
+            if (response.ok === true) {
+                const film = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(film));
+            }
+        }
+        // Зміна користувача
+        async function EditFilm(filmId, filmName, hallNumber) {
+            const response = await fetch("/api/films/" + filmId, {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: filmName,
+                    hall: parseInt(hallNumber, 10)
+                })
+            });
+            if (response.ok === true) {
+                const film = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + film._id + "']").replaceWith(row(film));
+            }
+        }
+        // Видалення користувача
+        async function DeleteFilm(id) {
+            const response = await fetch("/api/films/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const film = await response.json();
+                document.querySelector("tr[data-rowid='" + film._id + "']").remove();
+            }
+        }
+        // Скидання форми
+        function reset() {
+            const form = document.forms["filmForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+        // Створення рядка для таблиці
+        function row(film) {
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", film._id);
+            const idTd = document.createElement("td");
+            idTd.append(film._id);
+            tr.append(idTd);
+            const nameTd = document.createElement("td");
+            nameTd.append(film.name);
+            tr.append(nameTd);
+            const hallTd = document.createElement("td");
+            hallTd.append(film.hall);
+            tr.append(hallTd);
+            const linksTd = document.createElement("td");
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", film._id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Update");
+            editLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetFilm(film._id);
+            });
+            linksTd.append(editLink);
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", film._id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Delete");
+            removeLink.addEventListener("click", e => {
+                e.preventDefault();
+                DeleteFilm(film._id);
+            });
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+            return tr;
+        }
+        // Скидання значень форми
+        const resetButton = document.getElementById("reset");
+        resetButton.addEventListener("click", function (e) {
+            e.preventDefault();
+            reset();
+        });
+        // Відправка форми
+        document.forms["filmForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["filmForm"];
+            const id = form.elements["id"].value;
+            const name = form.elements["name"].value;
+            const hall = form.elements["hall"].value;
+            if (id == 0)
+                CreateFilm(name, hall);
+            else
+                EditFilm(id, name, hall);
+        });
+        // Завантаження користувачів
+        GetFilms();
+    </script>
+</body>
+
+</html>
