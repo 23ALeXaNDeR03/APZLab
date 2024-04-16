@@ -10,15 +10,23 @@
 
 <body>
     <h2>List of sessions</h2>
-    <form name="filmForm">
+    <form name="sessionForm">
         <input type="hidden" name="id" value="0" />
         <div class="form-group">
-            <label for="name">Name:</label>
-            <input class="form-control" name="name" />
+            <label for="film">Film:</label>
+            <input class="form-control" name="film" placeholder="Exam" />
         </div>
         <div class="form-group">
             <label for="hall">Hall:</label>
-            <input class="form-control" name="hall" />
+            <input class="form-control" name="hall" placeholder="2" />
+        </div>
+        <div class="form-group">
+            <label for="date">Date:</label>
+            <input class="form-control" name="date" placeholder="YYYY-MM-DD" />
+        </div>
+        <div class="form-group">
+            <label for="time">Time:</label>
+            <input class="form-control" name="time" placeholder="HH:mm" />
         </div>
         <div class="panel-body">
             <button type="submit" class="btn btn-sm btn-primary">Save</button>
@@ -29,8 +37,10 @@
         <thead>
             <tr>
                 <th>Id</th>
-                <th>Name</th>
+                <th>Film</th>
                 <th>Hall</th>
+                <th>Date</th>
+                <th>Time</th>
                 <th></th>
             </tr>
         </thead>
@@ -39,117 +49,130 @@
     </table>
 
     <script>
-        // Отримання всіх фільмів
-        async function GetFilms() {
+        // Отримання всіх сеансів
+        async function GetSessions() {
             // Відправляє запит і отримуємо відповідь
-            const response = await fetch("/api/films", {
+            const response = await fetch("/api/sessions", {
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
             // Якщо запит пройшов нормально
             if (response.ok === true) {
                 // Отримуємо дані
-                const films = await response.json();
+                const sessions = await response.json();
                 let rows = document.querySelector("tbody");
-                films.forEach(film => {
+                sessions.forEach(session => {
                     // Додаємо отримані елементи в таблицю
-                    rows.append(row(film));
+                    rows.append(row(session));
                 });
             }
         }
-        // Отримання одного фільму
-        async function GetFilm(id) {
-            const response = await fetch("/api/films/" + id, {
+        // Отримання одного сеансу
+        async function GetSession(id) {
+            const response = await fetch("/api/sessions/" + id, {
                 method: "GET",
                 headers: { "Accept": "application/json" }
             });
             if (response.ok === true) {
-                const film = await response.json();
-                const form = document.forms["filmForm"];
-                form.elements["id"].value = film._id;
-                form.elements["name"].value = film.name;
-                form.elements["hall"].value = film.hall;
+                const session = await response.json();
+                const form = document.forms["sessionForm"];
+                form.elements["id"].value = session._id;
+                form.elements["film"].value = session.film;
+                form.elements["hall"].value = session.hall;
+                form.elements["date"].value = new Date(session.date).toISOString().split('T')[0];
+                form.elements["time"].value = session.time;
             }
         }
-        // Додавання фільму
-        async function CreateFilm(filmName, hallNumber) {
-            const response = await fetch("api/films", {
+        // Додавання сеансу
+        async function CreateSession(filmName, hallNumber, sessionDate, sessionTime) {
+            const response = await fetch("api/sessions", {
                 method: "POST",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: filmName,
-                    hall: parseInt(hallNumber, 10)
+                    film: filmName,
+                    hall: parseInt(hallNumber, 10),
+                    date: sessionDate,
+                    time: sessionTime
                 })
             });
             if (response.ok === true) {
-                const film = await response.json();
+                const session = await response.json();
                 reset();
-                document.querySelector("tbody").append(row(film));
+                document.querySelector("tbody").append(row(session));
             }
         }
-        // Зміна фільму
-        async function EditFilm(filmId, filmName, hallNumber) {
-            const response = await fetch("/api/films/" + filmId, {
+
+        // Зміна сеансу
+        async function EditSession(sessionId, filmName, hallNumber, sessionDate, sessionTime) {
+            const response = await fetch("/api/sessions/" + sessionId, {
                 method: "PUT",
                 headers: { "Accept": "application/json", "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: filmName,
-                    hall: parseInt(hallNumber, 10)
+                    film: filmName,
+                    hall: parseInt(hallNumber, 10),
+                    date: sessionDate,
+                    time: sessionTime
                 })
             });
             if (response.ok === true) {
-                const film = await response.json();
+                const session = await response.json();
                 reset();
-                document.querySelector("tr[data-rowid='" + film._id + "']").replaceWith(row(film));
+                document.querySelector("tr[data-rowid='" + session._id + "']").replaceWith(row(session));
             }
         }
-        // Видалення фільму
-        async function DeleteFilm(id) {
-            const response = await fetch("/api/films/" + id, {
+        // Видалення сеансу
+        async function DeleteSession(id) {
+            const response = await fetch("/api/sessions/" + id, {
                 method: "DELETE",
                 headers: { "Accept": "application/json" }
             });
             if (response.ok === true) {
-                const film = await response.json();
-                document.querySelector("tr[data-rowid='" + film._id + "']").remove();
+                const session = await response.json();
+                document.querySelector("tr[data-rowid='" + session._id + "']").remove();
             }
         }
         // Скидання форми
         function reset() {
-            const form = document.forms["filmForm"];
+            const form = document.forms["sessionForm"];
             form.reset();
             form.elements["id"].value = 0;
         }
         // Створення рядка для таблиці
-        function row(film) {
-            const tr = document.createElement("tr");
-            tr.setAttribute("data-rowid", film._id);
-            const idTd = document.createElement("td");
-            idTd.append(film._id);
+        function row(session) {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-rowid', session._id);
+            const idTd = document.createElement('td');
+            idTd.append(session._id);
             tr.append(idTd);
-            const nameTd = document.createElement("td");
-            nameTd.append(film.name);
-            tr.append(nameTd);
-            const hallTd = document.createElement("td");
-            hallTd.append(film.hall);
+            const filmTd = document.createElement('td');
+            filmTd.append(session.film);
+            tr.append(filmTd);
+            const hallTd = document.createElement('td');
+            hallTd.append(session.hall);
             tr.append(hallTd);
+            const dateTd = document.createElement('td');
+            dateTd.append(new Date(session.date).toLocaleDateString());
+            tr.append(dateTd);
+            const timeTd = document.createElement('td');
+            timeTd.append(session.time);
+            tr.append(timeTd);
             const linksTd = document.createElement("td");
             const editLink = document.createElement("a");
-            editLink.setAttribute("data-id", film._id);
+            editLink.setAttribute("data-id", session._id);
             editLink.setAttribute("style", "cursor:pointer;padding:15px;");
             editLink.append("Update");
             editLink.addEventListener("click", e => {
                 e.preventDefault();
-                GetFilm(film._id);
+                GetSession(session._id);
             });
             linksTd.append(editLink);
             const removeLink = document.createElement("a");
-            removeLink.setAttribute("data-id", film._id);
+            removeLink.setAttribute("data-id", session._id);
             removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
             removeLink.append("Delete");
             removeLink.addEventListener("click", e => {
                 e.preventDefault();
-                DeleteFilm(film._id);
+                DeleteSession(session._id);
             });
             linksTd.append(removeLink);
             tr.appendChild(linksTd);
@@ -162,19 +185,21 @@
             reset();
         });
         // Відправка форми
-        document.forms["filmForm"].addEventListener("submit", e => {
+        document.forms["sessionForm"].addEventListener("submit", e => {
             e.preventDefault();
-            const form = document.forms["filmForm"];
+            const form = document.forms["sessionForm"];
             const id = form.elements["id"].value;
-            const name = form.elements["name"].value;
+            const film = form.elements["film"].value;
             const hall = form.elements["hall"].value;
+            const date = form.elements['date'].value;
+            const time = form.elements['time'].value;
             if (id == 0)
-                CreateFilm(name, hall);
+                CreateSession(film, hall, date, time);
             else
-                EditFilm(id, name, hall);
+                EditSession(id, film, hall, date, time);
         });
-        // Завантаження фільмів
-        GetFilms();
+        // Завантаження сеансів
+        GetSessions();
     </script>
 </body>
 

@@ -1,93 +1,131 @@
-// Імпортуємо необхідні модулі
-const express = require("express");
-const MongoClient = require("mongodb").MongoClient;
-const objectId = require("mongodb").ObjectID;
-// Створюємо екземпляр Express
+const express = require('express');
+const mongoose = require('mongoose');
+const objectId = require('mongoose').Types.ObjectId;
+// Створення екземпляра додатку Express
 const app = express();
-// Парсер для JSON
+// Middleware для роботи з JSON
 const jsonParser = express.json();
-// Створюємо новий екземпляр MongoClient з URL-адресою MongoDB
-const mongoClient = new MongoClient("mongodb://localhost:27017/cinema", { useUnifiedTopology: true });
-// Змінна для зберігання підключення до MongoDB
-let dbClient;
-// Налаштовуємо директорію для статичних файлів
-app.use(express.static(__dirname + "/public"));
-// Підключаємось до MongoDB
-mongoClient.connect(function (err, client) {
-    if (err) return console.log(err);
-    dbClient = client;
-    // Отримуємо колекцію "films" з бази даних "cinema"
-    app.locals.collection = client.db("cinema").collection("films");
-    // Запускаємо сервер на порту 3000
-    app.listen(3000, function () {
-        console.log("Waiting for connection...");
-    });
-});
-// Обробник для GET-запиту на /api/films
-app.get("/api/films", function (req, res) {
-    const collection = req.app.locals.collection;
-    // Отримуємо всі документи з колекції "films"
-    collection.find({}).toArray(function (err, films) {
-        if (err) return console.log(err);
-        res.send(films)
-    });
-});
-// Обробник для GET-запиту на /api/films/:id
-app.get("/api/films/:id", function (req, res) {
-    const id = new objectId(req.params.id);
-    const collection = req.app.locals.collection;
-    // Отримуємо документ з колекції "films" за його id
-    collection.findOne({ _id: id }, function (err, film) {
-        if (err) return console.log(err);
-        res.send(film);
-    });
-});
-// Обробник для POST-запиту на /api/films
-app.post("/api/films", jsonParser, function (req, res) {
-    if (!req.body) return res.sendStatus(400);
-    const filmName = req.body.name;
-    const hallNumber = req.body.hall;
-    const film = { name: filmName, hall: hallNumber };
-    const collection = req.app.locals.collection;
-    // Додаємо новий документ в колекцію "films"
-    collection.insertOne(film, function (err, result) {
-        if (err) return console.log(err);
-        res.send(film);
-    });
-});
-// Обробник для DELETE-запиту на /api/films/:id
-app.delete("/api/films/:id", function (req, res) {
-    const id = new objectId(req.params.id);
-    const collection = req.app.locals.collection;
-    // Видаляємо документ з колекції "films" за його id
-    collection.findOneAndDelete({ _id: id }, function (err, result) {
-        if (err) return console.log(err);
-        let film = result.value;
-        res.send(film);
-    });
-});
-// Обробник для PUT-запиту на /api/films/:id
-app.put("/api/films/:id", jsonParser, function (req, res) {
-    if (!req.body) return res.sendStatus(400);
 
-    const id = new objectId(req.params.id); // получаем id из URL
-    const filmName = req.body.name;
-    const hallNumber = req.body.hall;
-    const collection = req.app.locals.collection;
-    // Оновлюємо документ в колекції "films" за його id
-    collection.findOneAndUpdate(
-        { _id: id },
-        { $set: { hall: hallNumber, name: filmName } },
-        { returnDocument: "after" },
-        function (err, result) {
-            if (err) return console.log(err);
-            const film = result.value;
-            res.send(film);
-        }
-    );
+// Визначення схеми
+const sessionschema = new mongoose.Schema({
+    film: String, // Назва фільму
+    hall: Number, // Номер залу
+    date: Date, // Дата сеансу
+    time: String // Час сеансу
 });
-// Обробник для закриття з'єднання з MongoDB при виході
-process.on("SIGINT", () => {
-    dbClient.close();
+// Створення моделі для колекції сеансів на основі схеми
+const Session = mongoose.model('Session', sessionschema);
+// Встановлення статичного каталогу для публічних ресурсів
+app.use(express.static(__dirname + '/public'));
+// Підключення до бази даних MongoDB
+mongoose.connect('mongodb://localhost:27017/cinema', {
+    useUnifiedTopology: true,
+    useNewUrlParser: true
+})
+    .then(() => {
+        // Запуск сервера на порті 3000 після успішного підключення до бази даних
+        app.listen(3000, function () {
+            // Виведення повідомлення про очікування підключення
+            console.log('Waiting for connection...');
+        });
+    })
+    .catch(err => {
+        // Виведення повідомлення про очікування підключення
+        console.error('Failed to connect to MongoDB', err);
+    });
+// Маршрутизація для отримання всіх сеансів
+app.get('/api/sessions', async (req, res) => {
+    try {
+        const sessions = await Session.find({});
+        res.send(sessions);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+// Маршрутизація для отримання одного сеансу за ідентифікатором
+app.get('/api/sessions/:id', async (req, res) => {
+    try {
+        const session = await Session.findById(req.params.id);
+        if (!session) {
+            return res.status(404).send('Session not found');
+        }
+        res.send(session);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+// Маршрутизація для створення нового сеансу
+app.post('/api/sessions', jsonParser, async (req, res) => {
+    if (!req.body || !req.body.film) {
+        return res.status(400).send('Film name is required');
+    }
+    // Отримання параметрів з тіла запиту
+    const filmName = req.body.film;
+    const hallNumber = req.body.hall;
+    const sessionDate = req.body.date;
+    const sessionTime = req.body.time;
+    // Створення нового об'єкта сеансу
+    const session = new Session({
+        film: filmName,
+        hall: hallNumber,
+        date: sessionDate,
+        time: sessionTime
+    });
+
+    try {
+        // Збереження нового сеансу у базі даних
+        const savedSession = await session.save();
+        res.send(savedSession);
+    } catch (err) {
+        // Виведення помилки, якщо вона виникла
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+// Маршрутизація для видалення сеансу за ідентифікатором
+app.delete('/api/sessions/:id', async (req, res) => {
+    try {
+        const session = await Session.findByIdAndDelete(req.params.id);
+        if (!session) {
+            return res.status(404).send('Session not found');
+        }
+        res.send(session);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+// Маршрутизація для оновлення інформації про сеанс за ідентифікатором
+app.put('/api/sessions/:id', jsonParser, async (req, res) => {
+    if (!req.body) return res.sendStatus(400);
+    // Отримання параметрів з тіла запиту
+    const filmName = req.body.film;
+    const hallNumber = req.body.hall;
+    const sessionDate = req.body.date;
+    const sessionTime = req.body.time;
+
+    try {
+        const updatedSession = await Session.findByIdAndUpdate(
+            req.params.id,
+            { $set: { hall: hallNumber, film: filmName, date: sessionDate, time: sessionTime } },
+            { new: true }
+        );
+        if (!updatedSession) {
+            return res.status(404).send('Session not found');
+        }
+        res.send(updatedSession);
+    } catch (err) {
+        // Виведення помилки, якщо вона виникла
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+// Обробка сигналу SIGINT для закриття підключення до бази даних
+process.on('SIGINT', () => {
+    // Закриття підключення до бази даних MongoDB
+    mongoose.connection.close();
+    // Вихід з процесу
     process.exit();
 });
