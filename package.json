@@ -1,5 +1,5 @@
 {
-  "name": "mongodb",
+  "name": "mongoapp",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,9 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "express": "^4.18.3",
-    "mongodb": "^4.17.2"
-  },
-  "dependencies": {
-    "mongoose": "^8.3.1"
+    "mongodb": "^4.17.2",
+    "mongoose": "^8.3.1",
+    "dotenv": "16.4.5"
   }
 }
